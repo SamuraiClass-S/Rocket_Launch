@@ -1,8 +1,0 @@
-[
-{
-  "directory": "C:/Users/wla/Documents/krpc/build",
-  "command": "C:\\msys64\\ucrt64\\bin\\g++.exe -DPROTOBUF_USE_DLLS @CMakeFiles/test.dir/includes_CXX.rsp -g -o CMakeFiles\\test.dir\\checking_systems.cpp.obj -c C:\\Users\\wla\\Documents\\krpc\\checking_systems.cpp",
-  "file": "C:/Users/wla/Documents/krpc/checking_systems.cpp",
-  "output": "CMakeFiles/test.dir/checking_systems.cpp.obj"
-}
-]

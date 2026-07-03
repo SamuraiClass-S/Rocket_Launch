@@ -1,3 +1,0 @@
-C:/Users/wla/Documents/krpc/build/CMakeFiles/test.dir
-C:/Users/wla/Documents/krpc/build/CMakeFiles/edit_cache.dir
-C:/Users/wla/Documents/krpc/build/CMakeFiles/rebuild_cache.dir
