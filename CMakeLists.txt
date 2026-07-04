@@ -7,6 +7,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(krpc)
 
-add_executable(test checking_systems.cpp)
+add_executable(launch checking_systems.cpp)
 
-target_link_libraries(test PRIVATE krpc)
+# Вказуємо нашому файлу test, де шукати заголовки kRPC та згенеровані файли Protobuf
+target_include_directories(launch PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/krpc/include
+    ${CMAKE_CURRENT_BINARY_DIR}/krpc/protobuf/include
+)
+
+# Лінкуємо нашу скомпільовану бібліотеку kRPC до тестового файлу
+target_link_libraries(launch PRIVATE krpc)
+
+target_link_options(launch PRIVATE -static -static-libgcc -static-libstdc++)

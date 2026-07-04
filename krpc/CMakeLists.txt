@@ -74,11 +74,8 @@ add_custom_command(
 )
 
 file(GLOB SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
-if(MSVC)
-  add_library(krpc STATIC ${SRC} ${PROTO_HDR} ${PROTO_SRC})
-else()
-  add_library(krpc SHARED ${SRC} ${PROTO_HDR} ${PROTO_SRC})
-endif()
+
+add_library(krpc STATIC ${SRC} ${PROTO_HDR} ${PROTO_SRC})
 
 set_target_properties(
   krpc PROPERTIES VERSION   ${VERSION_NUMBER}
