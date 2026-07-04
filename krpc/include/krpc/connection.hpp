@@ -7,7 +7,7 @@
 #ifndef ASIO_STANDALONE
 #define ASIO_STANDALONE
 #endif
-#include <asio/io_service.hpp>
+#include <asio/io_context.hpp>
 #include <asio/ip/tcp.hpp>
 // IWYU pragma: no_include <asio/impl/io_service.ipp>
 
@@ -29,7 +29,7 @@ class Connection {
   std::string partial_receive(size_t length,
                               std::chrono::milliseconds timeout = std::chrono::milliseconds(10));
  private:
-  asio::io_service io_service;
+  asio::io_context io_context;
   asio::ip::tcp::socket socket;
   const std::string address;
   const unsigned int port;

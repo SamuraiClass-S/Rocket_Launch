@@ -1,5 +1,6 @@
 #include "krpc/client.hpp"
 
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -137,11 +138,11 @@ std::shared_ptr<StreamImpl> Client::add_stream(const schema::ProcedureCall& call
   return stream_manager->add_stream(call);
 }
 
-std::shared_ptr<StreamImpl> Client::get_stream(google::protobuf::uint64 id) {
+std::shared_ptr<StreamImpl> Client::get_stream(uint64_t id) { // Оновлено
   return stream_manager->get_stream(id);
 }
 
-void Client::remove_stream(google::protobuf::uint64 id) {
+void Client::remove_stream(uint64_t id) { // Оновлено
   stream_manager->remove_stream(id);
 }
 

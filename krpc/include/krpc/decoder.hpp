@@ -1,8 +1,7 @@
 #pragma once
 
-#include <google/protobuf/stubs/port.h>
-
 #include <cstddef>
+#include <cstdint> // Заміна старого stubs/port.h
 #include <map>
 #include <set>
 #include <string>
@@ -31,10 +30,10 @@ std::string guid(const std::string& data);
 
 void decode(double& value, const std::string& data, Client * client = nullptr);
 void decode(float& value, const std::string& data, Client * client = nullptr);
-void decode(google::protobuf::int32& value, const std::string& data, Client * client = nullptr);
-void decode(google::protobuf::int64& value, const std::string& data, Client * client = nullptr);
-void decode(google::protobuf::uint32& value, const std::string& data, Client * client = nullptr);
-void decode(google::protobuf::uint64& value, const std::string& data, Client * client = nullptr);
+void decode(int32_t& value, const std::string& data, Client * client = nullptr);   // Оновлено
+void decode(int64_t& value, const std::string& data, Client * client = nullptr);   // Оновлено
+void decode(uint32_t& value, const std::string& data, Client * client = nullptr);  // Оновлено
+void decode(uint64_t& value, const std::string& data, Client * client = nullptr);  // Оновлено
 void decode(bool& value, const std::string& data, Client * client = nullptr);
 void decode(std::string& value, const std::string& data, Client * client = nullptr);
 void decode(Event& event, const std::string& data, Client * client = nullptr);
@@ -62,11 +61,11 @@ template <typename T> void decode(std::set<T>& set, const std::string& data,
 template <typename K, typename V> void decode(
   std::map<K, V>& dictionary, const std::string& data, Client * client = nullptr);
 
-google::protobuf::uint32 decode_size(const std::string& data);
+uint32_t decode_size(const std::string& data); // Оновлено
 
 template <typename T>
 inline void decode(Object<T>& object, const std::string& data, Client * client) {
-  google::protobuf::uint64 id;
+  uint64_t id; // Оновлено
   decode(id, data, client);
   object._client = client;
   object._id = id;

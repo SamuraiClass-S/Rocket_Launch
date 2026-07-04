@@ -1,8 +1,10 @@
-cmake_minimum_required(VERSION 3.0.0)
+cmake_minimum_required(VERSION 3.15)
 project(kRPC)
 
 set(VERSION_NUMBER 0.5.4)
 set(CMAKE_BUILD_TYPE "Release")
+
+add_compile_definitions(PROTOBUF_USE_DLLS)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
   # Enable C++ 2011 when building with gcc
