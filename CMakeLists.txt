@@ -14,8 +14,8 @@ target_include_directories(launch PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/krpc/include
     ${CMAKE_CURRENT_BINARY_DIR}/krpc/protobuf/include
 )
-
+ 
 # Лінкуємо нашу скомпільовану бібліотеку kRPC до тестового файлу
-target_link_libraries(launch PRIVATE krpc)
+target_link_libraries(launch PRIVATE krpc)  
 
 target_link_options(launch PRIVATE -static -static-libgcc -static-libstdc++)

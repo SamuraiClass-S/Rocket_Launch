@@ -5,10 +5,12 @@
 #include <krpc/services/space_center.hpp>
 using namespace std;
 int main() {
+    
 
+    setlocale(LC_ALL,"");
     cout << "[SYSTEM] Tryong connect to server kRPC..." << endl;
 
-    try {
+    try { 
         // Створюємо клієнт (назва_клієнта, IP, RPC_порт, Stream_порт)
         krpc::Client client("Autopilot Test", "127.0.0.1", 50000, 50001);
         cout << "[SYSTEM] Connect has been succefully!" << endl;
@@ -30,11 +32,8 @@ int main() {
         
        
         while (flight_info.mean_altitude() < 100000) { 
-           cout << "🌍 Altitude in sea level: " << flight_info.mean_altitude() << "meters " << endl;
-        }
-        
-       
-        
+           cout << "🌍 Altitude in sea level: " << flight_info.mean_altitude() << " meters " << endl;
+        }   
         
          
     } catch (const exception& e) {
