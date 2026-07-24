@@ -1,0 +1,152 @@
+cmake_minimum_required(VERSION 3.15)
+project(krpc VERSION 0.6.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+include(FetchContent)
+
+option(KRPC_FETCH_DEPS     "Use FetchContent for all dependencies (protobuf, ASIO, abseil)" OFF)
+option(KRPC_FETCH_PROTOBUF "Use FetchContent for protobuf"                                  OFF)
+option(KRPC_FETCH_ASIO     "Use FetchContent for ASIO"                                      OFF)
+option(KRPC_FETCH_ABSL     "Use FetchContent for abseil (only relevant when KRPC_FETCH_PROTOBUF=ON)" OFF)
+
+if(KRPC_FETCH_DEPS)
+  set(KRPC_FETCH_PROTOBUF ON)
+  set(KRPC_FETCH_ASIO ON)
+  set(KRPC_FETCH_ABSL ON)
+endif()
+
+# ---- Protobuf ----
+if(KRPC_FETCH_PROTOBUF)
+  message(STATUS "Fetching protobuf via FetchContent...")
+  set(protobuf_BUILD_TESTS       OFF CACHE BOOL "" FORCE)
+  set(protobuf_BUILD_CONFORMANCE OFF CACHE BOOL "" FORCE)
+  set(protobuf_BUILD_EXAMPLES    OFF CACHE BOOL "" FORCE)
+  set(protobuf_INSTALL           ON  CACHE BOOL "" FORCE)
+  if(NOT KRPC_FETCH_ABSL)
+    find_package(absl QUIET)
+    if(NOT absl_FOUND)
+      message(FATAL_ERROR "abseil not found. Install abseil or set KRPC_FETCH_ABSL=ON "
+              "(or KRPC_FETCH_DEPS=ON) to download it automatically via FetchContent.")
+    endif()
+    set(protobuf_ABSL_PROVIDER "package" CACHE STRING "" FORCE)
+  endif()
+  FetchContent_Declare(protobuf
+    GIT_REPOSITORY https://github.com/protocolbuffers/protobuf.git
+    GIT_TAG        v35.1
+    GIT_SHALLOW    TRUE)
+  FetchContent_MakeAvailable(protobuf)
+  include("${protobuf_SOURCE_DIR}/cmake/protobuf-generate.cmake")
+else()
+  find_package(protobuf CONFIG)
+  if(NOT protobuf_FOUND)
+    message(FATAL_ERROR "protobuf not found. Install protobuf or set KRPC_FETCH_PROTOBUF=ON "
+            "(or KRPC_FETCH_DEPS=ON) to download it automatically via FetchContent.")
+  endif()
+  message(STATUS "Found protobuf ${protobuf_VERSION}")
+endif()
+
+# ---- ASIO (standalone, header-only) ----
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+if(KRPC_FETCH_ASIO)
+  message(STATUS "Fetching ASIO via FetchContent...")
+  FetchContent_Declare(asio
+    URL      https://github.com/chriskohlhoff/asio/archive/refs/tags/asio-1-38-0.tar.gz
+    URL_HASH SHA256=5cf78ede456fd13b95fe692711f4f689be26c826f1f5541c7a1df3aa32bd9dbd
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+  FetchContent_GetProperties(asio)
+  if(NOT asio_POPULATED)
+    FetchContent_Populate(asio)
+  endif()
+  add_library(asio::asio INTERFACE IMPORTED)
+  set_target_properties(asio::asio PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${asio_SOURCE_DIR}/asio/include")
+  set(asio_FETCHED TRUE)
+else()
+  find_package(Asio)
+  if(NOT Asio_FOUND)
+    message(FATAL_ERROR "ASIO not found. Install ASIO, set ASIO_ROOT to its location, "
+            "or set KRPC_FETCH_ASIO=ON (or KRPC_FETCH_DEPS=ON) to download it automatically via FetchContent.")
+  endif()
+endif()
+
+# ---- Generate proto at build time ----
+protobuf_generate(
+  PROTOS          "${CMAKE_CURRENT_SOURCE_DIR}/protobuf/krpc.proto"
+  LANGUAGE        cpp
+  GENERATE_EXTENSIONS .pb.cc .pb.h
+  OUT_VAR         PROTO_GENERATED
+  PROTOC_OUT_DIR  "${CMAKE_CURRENT_BINARY_DIR}"
+  IMPORT_DIRS     "${CMAKE_CURRENT_SOURCE_DIR}/protobuf"
+  PROTOS          "${CMAKE_CURRENT_SOURCE_DIR}/protobuf/krpc.proto")
+
+foreach(_f ${PROTO_GENERATED})
+  if(_f MATCHES "\\.h$")
+    set(PROTO_HDR_GEN "${_f}")
+  elseif(_f MATCHES "\\.cc$")
+    set(PROTO_SRC "${_f}")
+  endif()
+endforeach()
+
+# Copy generated header to krpc/krpc.pb.hpp
+set(PROTO_HDR_COMPAT "${CMAKE_CURRENT_BINARY_DIR}/krpc/krpc.pb.hpp")
+add_custom_command(
+  OUTPUT "${PROTO_HDR_COMPAT}"
+  COMMAND "${CMAKE_COMMAND}" -E make_directory "${CMAKE_CURRENT_BINARY_DIR}/krpc"
+  COMMAND "${CMAKE_COMMAND}" -E copy "${PROTO_HDR_GEN}" "${PROTO_HDR_COMPAT}"
+  DEPENDS "${PROTO_HDR_GEN}")
+add_custom_target(krpc_proto_hdr DEPENDS "${PROTO_HDR_COMPAT}")
+
+# ---- Library ----
+file(GLOB KRPC_SRC "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+add_library(krpc ${KRPC_SRC} "${PROTO_SRC}")
+add_library(krpc::krpc ALIAS krpc)
+add_dependencies(krpc krpc_proto_hdr)
+
+target_include_directories(krpc PUBLIC
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+  "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>"
+  "$<INSTALL_INTERFACE:include>")
+target_compile_definitions(krpc PUBLIC ASIO_STANDALONE)
+if(WIN32)
+  target_compile_definitions(krpc PUBLIC _WIN32_WINNT=0x0601)
+endif()
+target_link_libraries(krpc PRIVATE protobuf::libprotobuf-lite)
+target_link_libraries(krpc PUBLIC asio::asio)
+
+set_target_properties(krpc PROPERTIES
+  VERSION   ${PROJECT_VERSION}
+  SOVERSION ${PROJECT_VERSION_MAJOR})
+
+include(GNUInstallDirs)
+install(TARGETS krpc
+  EXPORT krpcTargets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(FILES "${PROTO_HDR_COMPAT}" DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/krpc")
+# If ASIO was fetched (not found on the system), install it into the prefix too.
+if(asio_FETCHED)
+  get_filename_component(_asio_real_inc "${asio_SOURCE_DIR}/asio/include" REALPATH)
+  install(DIRECTORY "${_asio_real_inc}/"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+endif()
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/krpcConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/krpcConfig.cmake"
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/krpc")
+write_basic_package_version_file(
+  "${CMAKE_CURRENT_BINARY_DIR}/krpcConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion)
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/krpcConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/krpcConfigVersion.cmake"
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindAsio.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/krpc")
+install(EXPORT krpcTargets
+  NAMESPACE krpc::
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/krpc")

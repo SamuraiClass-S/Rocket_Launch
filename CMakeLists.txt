@@ -1,21 +1,18 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.15) # Оновлюємо базову версію, бо kRPC 0.6.0 вимагає мінімум 3.15
 
 project(checking_system)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# 2. Підключаємо нову папку
+add_subdirectory("libs/krpc")
 
-add_subdirectory(krpc)
+# 3. Наш головний файл
+add_executable(test checking_systems.cpp)
 
-add_executable(launch checking_systems.cpp)
-
-# Вказуємо нашому файлу test, де шукати заголовки kRPC та згенеровані файли Protobuf
-target_include_directories(launch PRIVATE 
-    ${CMAKE_CURRENT_SOURCE_DIR}/krpc/include
-    ${CMAKE_CURRENT_BINARY_DIR}/krpc/protobuf/include
+# 4. Лінкуємо все разом. 
+# Зверни увагу: kRPC тепер сам передасть нам шляхи до ASIO і Protobuf, 
+# тому нам більше не треба писати target_include_directories та find_package!
+target_link_libraries(test PRIVATE
+    krpc                     
+    ws2_32                   
+    mswsock                  
 )
- 
-# Лінкуємо нашу скомпільовану бібліотеку kRPC до тестового файлу
-target_link_libraries(launch PRIVATE krpc)  
-
-target_link_options(launch PRIVATE -static -static-libgcc -static-libstdc++)
